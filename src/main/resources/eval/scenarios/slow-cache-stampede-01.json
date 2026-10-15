@@ -1,0 +1,42 @@
+{
+  "scenarioId": "slow-cache-stampede-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 product-service 响应时间从 120ms 突增到 2.8s",
+      "state": "firing",
+      "activeAt": "2026-10-14T11:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 18:59:00",
+      "level": "WARN",
+      "service": "product-service",
+      "instance": "pod-product-service-2c3d4e5f6-g7h8i",
+      "message": "热点 key 过期瞬间 3400 个请求同时回源，缓存命中率从 98% 跌到 12%。",
+      "metrics": {
+        "hot_key": "product:detail:10086",
+        "concurrent_load": "3400",
+        "cache_hit_rate": "12%"
+      },
+      "queryAnyTerms": ["cache", "缓存", "穿透"]
+    },
+    {
+      "topic": "database-slow-query",
+      "timestamp": "2026-10-14 18:58:00",
+      "level": "WARN",
+      "service": "mysql",
+      "instance": "mysql-primary-01",
+      "message": "同一 SQL 并发 3400 次，DB CPU 97%，查询排队。",
+      "metrics": {
+        "qps": "3400",
+        "db_cpu": "97%",
+        "table": "product"
+      },
+      "queryAnyTerms": ["慢查询", "qps", "并发"]
+    }
+  ]
+}

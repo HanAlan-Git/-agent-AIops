@@ -1,0 +1,42 @@
+{
+  "scenarioId": "cpu-noisy-neighbor-node-01",
+  "alerts": [
+    {
+      "alertName": "HighCPUUsage",
+      "description": "节点 node-worker-01 上多个 Pod CPU 同时升高",
+      "state": "firing",
+      "activeAt": "2026-10-14T04:10:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 12:09:00",
+      "level": "WARN",
+      "service": "node-worker-01",
+      "instance": "node-worker-01",
+      "message": "节点 load_average_1m=24.7，vCPU=8，CPU steal 时间占 31%。",
+      "metrics": {
+        "load_average_1m": "24.7",
+        "vcpu": "8",
+        "cpu_steal": "31%"
+      },
+      "queryAnyTerms": ["load", "steal", "节点"]
+    },
+    {
+      "topic": "system-events",
+      "timestamp": "2026-10-14 12:08:00",
+      "level": "WARN",
+      "service": "kubernetes",
+      "instance": "node-worker-01",
+      "message": "外部负载测试容器 stress-ng 占用 6 个核，非业务 Pod（命名空间 chaos-testing）。",
+      "metrics": {
+        "pod": "stress-ng-8f7d",
+        "namespace": "chaos-testing",
+        "cores": "6"
+      },
+      "queryAnyTerms": ["stress", "chaos", "节点"]
+    }
+  ]
+}

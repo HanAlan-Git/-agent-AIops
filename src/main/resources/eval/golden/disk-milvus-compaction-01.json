@@ -1,0 +1,23 @@
+{
+  "scenarioId": "disk-milvus-compaction-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "compaction-backlog-disk-growth",
+      "description": "删除标记未回收导致 compaction 积压，segment 膨胀占满数据盘。",
+      "rootCauseTermGroups": [
+        ["compaction", "合并", "回收"],
+        ["删除", "deleted", "标记", "segment"]
+      ],
+      "evidenceTermGroups": [
+        ["91%"],
+        ["37"],
+        ["48%", "412"]
+      ],
+      "actionTermGroups": [
+        ["compaction", "回收", "清理", "扩容", "分层存储"]
+      ]
+    }
+  ]
+}

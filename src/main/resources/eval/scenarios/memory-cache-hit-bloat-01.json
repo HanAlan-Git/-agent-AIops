@@ -1,0 +1,41 @@
+{
+  "scenarioId": "memory-cache-hit-bloat-01",
+  "alerts": [
+    {
+      "alertName": "HighMemoryUsage",
+      "description": "服务 cart-service 内存使用率 87% 且持续上升",
+      "state": "firing",
+      "activeAt": "2026-10-14T06:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 13:59:00",
+      "level": "WARN",
+      "service": "cart-service",
+      "instance": "pod-cart-service-2b3c4d5e6-g7h8i",
+      "message": "本地缓存 Caffeine 命中率 99%，条目数 4200000，未设置 maximumSize。",
+      "metrics": {
+        "cache_hit_rate": "99%",
+        "cache_entries": "4200000",
+        "maximum_size": "none"
+      },
+      "queryAnyTerms": ["memory", "cache"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 13:57:00",
+      "level": "WARN",
+      "service": "cart-service",
+      "instance": "pod-cart-service-2b3c4d5e6-g7h8i",
+      "message": "缓存 key 含用户 sessionId，session 失效后条目不会过期：expireAfterWrite 未配置。",
+      "metrics": {
+        "expire_after_write": "none",
+        "key_pattern": "sessionId:*"
+      },
+      "queryAnyTerms": ["cache", "session", "过期"]
+    }
+  ]
+}

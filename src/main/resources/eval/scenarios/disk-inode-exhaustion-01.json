@@ -1,0 +1,42 @@
+{
+  "scenarioId": "disk-inode-exhaustion-01",
+  "alerts": [
+    {
+      "alertName": "HighDiskUsage",
+      "description": "服务 file-service 写入失败，节点磁盘使用率仅 42%",
+      "state": "firing",
+      "activeAt": "2026-10-14T07:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 14:59:00",
+      "level": "ERROR",
+      "service": "node-worker-04",
+      "instance": "node-worker-04",
+      "message": "df -i 显示 inode 使用率 100%，可用 inode 0，磁盘容量使用率仅 42%。",
+      "metrics": {
+        "inode_usage": "100%",
+        "inode_available": "0",
+        "disk_usage": "42%"
+      },
+      "queryAnyTerms": ["inode", "磁盘", "disk"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 14:58:00",
+      "level": "ERROR",
+      "service": "file-service",
+      "instance": "pod-file-service-7h6g5f4e3-d2s1a",
+      "message": "写入失败：No space left on device；/tmp 下存在 230 万个 upload-*.part 临时小文件。",
+      "metrics": {
+        "error": "No space left on device",
+        "tmp_files": "2300000",
+        "file_pattern": "upload-*.part"
+      },
+      "queryAnyTerms": ["inode", "临时文件", "space"]
+    }
+  ]
+}

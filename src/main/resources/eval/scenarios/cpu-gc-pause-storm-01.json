@@ -1,0 +1,44 @@
+{
+  "scenarioId": "cpu-gc-pause-storm-01",
+  "alerts": [
+    {
+      "alertName": "HighCPUUsage",
+      "description": "服务 report-service CPU 使用率 88%，伴随接口超时",
+      "state": "firing",
+      "activeAt": "2026-10-14T03:40:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 11:39:00",
+      "level": "WARN",
+      "service": "report-service",
+      "instance": "pod-report-service-3a2b1c0d9-e4r5t",
+      "message": "CPU 88%，其中 GC 线程占用 61%，Young GC 频率 42 次/分钟。",
+      "metrics": {
+        "cpu_usage": "88",
+        "gc_thread_cpu": "61",
+        "young_gc_per_min": "42",
+        "heap_used": "3.4GB",
+        "heap_max": "4GB"
+      },
+      "queryAnyTerms": ["cpu", "gc"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 11:38:00",
+      "level": "WARN",
+      "service": "report-service",
+      "instance": "pod-report-service-3a2b1c0d9-e4r5t",
+      "message": "存活对象过多导致晋升失败：promotion failed，每次 GC 后 Old Gen 仍占 87%。",
+      "metrics": {
+        "gc_cause": "promotion failed",
+        "old_gen": "87%",
+        "full_gc_count": "9"
+      },
+      "queryAnyTerms": ["gc", "promotion"]
+    }
+  ]
+}

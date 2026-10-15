@@ -1,0 +1,23 @@
+{
+  "scenarioId": "unit-eval-scenario-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "notes": "In-memory fixture for EvalScoringServiceTest. Lives outside eval/golden on purpose so scenario discovery never picks it up. Keep the term groups stable: the unit test asserts the exact score.",
+  "acceptableDiagnoses": [
+    {
+      "id": "unit-diagnosis",
+      "description": "缓存未释放导致堆内存泄漏。",
+      "rootCauseTermGroups": [
+        ["缓存", "cache"],
+        ["未释放", "泄漏", "leak"]
+      ],
+      "evidenceTermGroups": [
+        ["3.8GB"],
+        ["15", "Full GC"]
+      ],
+      "actionTermGroups": [
+        ["上限", "清理", "驱逐"]
+      ]
+    }
+  ]
+}

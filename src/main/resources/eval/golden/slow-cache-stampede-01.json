@@ -1,0 +1,23 @@
+{
+  "scenarioId": "slow-cache-stampede-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "cache-stampede-hot-key",
+      "description": "热点 key 同时过期造成缓存击穿，请求集体回源压垮数据库。",
+      "rootCauseTermGroups": [
+        ["缓存", "cache"],
+        ["击穿", "穿透", "stampede", "同时过期", "雪崩"]
+      ],
+      "evidenceTermGroups": [
+        ["3400", "3,400"],
+        ["12%", "98%"],
+        ["97%", "10086"]
+      ],
+      "actionTermGroups": [
+        ["互斥", "锁", "逻辑过期", "预热", "限流"]
+      ]
+    }
+  ]
+}

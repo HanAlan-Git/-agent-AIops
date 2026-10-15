@@ -1,0 +1,32 @@
+{
+  "scenarioId": "cpu-thread-pool-backlog-01",
+  "alerts": [
+    {
+      "alertName": "HighCPUUsage",
+      "description": "服务 payment-service 的 CPU 使用率持续超过 80%，当前值为 92%。实例: pod-payment-service-7d8f9c6b5-x2k4m，命名空间: production。",
+      "state": "firing",
+      "activeAt": "2026-10-14T02:35:00Z",
+      "duration": "25m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 10:55:00",
+      "level": "WARN",
+      "service": "payment-service",
+      "instance": "pod-payment-service-7d8f9c6b5-x2k4m",
+      "message": "CPU 使用率 92.0%，请求工作线程池 active=200/max=200，任务队列 backlog=1840。",
+      "metrics": {"cpu_usage": "92.0", "thread_pool_active": "200", "thread_pool_max": "200", "queue_backlog": "1840"}
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 10:54:00",
+      "level": "WARN",
+      "service": "payment-service",
+      "instance": "pod-payment-service-7d8f9c6b5-x2k4m",
+      "message": "请求处理排队时间持续升高，payment callback worker queue backlog=1840。",
+      "metrics": {"queue_backlog": "1840", "worker_pool": "payment-callback"}
+    }
+  ]
+}

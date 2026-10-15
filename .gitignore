@@ -1,0 +1,68 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+.idea/CopilotChatHistory.xml
+.idea/CopilotChatTabs.xml
+*.iws
+*.iml
+*.ipr
+.idea/*
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Application Logs ###
+*.log
+app.log
+logs/
+
+### Upload Files ###
+uploads/
+
+### Temp Scripts ###
+*.sh
+*.py
+
+### docker
+/volumes
+/server.pid
+
+### Secrets
+.env
+.env.*
+src/main/resources/application-local.yml
+**/application-local.yml
+
+### Evaluation artifacts
+eval-reports/
+
+### 本地临时目录（截图渲染、简历材料与脚手架脚本，全部只留在本地）
+/tmp/

@@ -1,0 +1,39 @@
+{
+  "scenarioId": "slow-response-db-query-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "orders-slow-query-missing-index",
+      "description": "orders 查询未命中联合索引，慢 SQL 占用了主要请求耗时并造成 P99 升高。",
+      "rootCauseTermGroups": [
+        ["慢查询", "慢 SQL", "数据库查询"],
+        ["索引", "未命中", "全表扫描"]
+      ],
+      "evidenceTermGroups": [
+        ["4.2", "4200", "P99"],
+        ["3.85", "3850"],
+        ["orders", "订单"]
+      ],
+      "actionTermGroups": [
+        ["执行计划", "EXPLAIN", "索引"],
+        ["SQL", "查询", "分页", "优化"]
+      ]
+    },
+    {
+      "id": "database-dominates-request-latency",
+      "description": "数据库耗时占据 user-service 请求的大部分时间，是响应变慢的直接原因。",
+      "rootCauseTermGroups": [
+        ["数据库", "DB", "SQL"],
+        ["耗时", "慢", "延迟"]
+      ],
+      "evidenceTermGroups": [
+        ["4200", "4.2"],
+        ["3800", "3.85", "3850"]
+      ],
+      "actionTermGroups": [
+        ["慢 SQL", "SQL", "索引", "执行计划"]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scenarioId": "slow-thread-pool-queue-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "blocking-calls-saturate-worker-threads",
+      "description": "同步阻塞的下游调用占用全部工作线程，请求在队列中排队形成延迟。",
+      "rootCauseTermGroups": [
+        ["线程", "thread", "队列", "排队"],
+        ["阻塞", "同步", "下游"]
+      ],
+      "evidenceTermGroups": [
+        ["200", "busy 200"],
+        ["137"],
+        ["1800", "1900"]
+      ],
+      "actionTermGroups": [
+        ["异步", "超时", "线程池", "扩容", "隔离"]
+      ]
+    }
+  ]
+}

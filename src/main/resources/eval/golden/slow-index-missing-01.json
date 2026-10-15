@@ -1,0 +1,23 @@
+{
+  "scenarioId": "slow-index-missing-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "missing-join-index",
+      "description": "关联查询缺少索引导致全表扫描，数据库耗时占据接口响应绝大部分。",
+      "rootCauseTermGroups": [
+        ["索引", "index", "全表扫描"],
+        ["慢查询", "join", "关联"]
+      ],
+      "evidenceTermGroups": [
+        ["3.2"],
+        ["856234"],
+        ["4200", "3800"]
+      ],
+      "actionTermGroups": [
+        ["索引", "sql", "缓存", "优化", "分页"]
+      ]
+    }
+  ]
+}

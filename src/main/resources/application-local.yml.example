@@ -1,0 +1,18 @@
+spring:
+  ai:
+    deepseek:
+      # 复制本文件为 application-local.yml 后填入真实 Key；本 .example 文件会提交，禁止写明文
+      # 也可写成 ${DEEPSEEK_API_KEY_AGENT}，前提是该环境变量已在本机设置
+      api-key: <在这里填 DeepSeek Key>
+    dashscope:
+      # 也可写成 ${DASHSCOPE_API_KEY}
+      api-key: <在这里填 DashScope Key>
+      embedding:
+        options:
+          model: text-embedding-v4
+          dimensions: 1024
+
+# 兼容项目中基于 DashScope SDK 的 Embedding/RAG 服务
+dashscope:
+  api:
+    key: ${spring.ai.dashscope.api-key}

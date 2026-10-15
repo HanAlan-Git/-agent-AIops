@@ -1,0 +1,34 @@
+{
+  "scenarioId": "slow-response-db-query-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 user-service 的 P99 响应时间持续超过 3 秒，当前值为 4.2 秒。受影响接口: /api/v1/users/profile、/api/v1/users/orders。",
+      "state": "firing",
+      "activeAt": "2026-10-14T02:50:00Z",
+      "duration": "10m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 10:59:00",
+      "level": "WARN",
+      "service": "user-service",
+      "instance": "pod-user-service-8e9f0a1b2-k5j6h",
+      "message": "慢请求: /api/v1/users/orders，响应时间 4200ms，其中数据库耗时 3800ms。",
+      "queryAnyTerms": ["slow", "response_time", "level:error"],
+      "metrics": {"response_time_ms": "4200", "db_time_ms": "3800", "uri": "/api/v1/users/orders"}
+    },
+    {
+      "topic": "database-slow-query",
+      "timestamp": "2026-10-14 10:58:00",
+      "level": "WARN",
+      "service": "mysql",
+      "instance": "mysql-primary-01",
+      "message": "慢查询: SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC，执行时间 3.85s，未命中联合索引。",
+      "queryAnyTerms": ["query_time", "slow", "sql", "orders"],
+      "metrics": {"query_time_sec": "3.85", "table": "orders", "index_used": "NONE", "query_type": "SELECT"}
+    }
+  ]
+}

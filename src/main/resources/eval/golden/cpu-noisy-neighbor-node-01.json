@@ -1,0 +1,23 @@
+{
+  "scenarioId": "cpu-noisy-neighbor-node-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "noisy-neighbor",
+      "description": "同节点上的压测容器抢占 CPU，业务 Pod 受邻居干扰而非自身故障。",
+      "rootCauseTermGroups": [
+        ["邻居", "noisy", "压测", "stress"],
+        ["节点", "node", "抢占", "steal"]
+      ],
+      "evidenceTermGroups": [
+        ["24.7", "load"],
+        ["31%", "steal"],
+        ["stress-ng", "chaos-testing"]
+      ],
+      "actionTermGroups": [
+        ["迁移", "驱逐", "evict", "隔离", "节点"]
+      ]
+    }
+  ]
+}

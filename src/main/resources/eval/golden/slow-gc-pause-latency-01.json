@@ -1,0 +1,23 @@
+{
+  "scenarioId": "slow-gc-pause-latency-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "full-gc-pause-spikes",
+      "description": "存活对象过多导致 Full GC 停顿周期性拉高尾延迟，平均值掩盖了毛刺。",
+      "rootCauseTermGroups": [
+        ["gc", "full gc", "垃圾回收"],
+        ["停顿", "pause", "毛刺", "尾延迟"]
+      ],
+      "evidenceTermGroups": [
+        ["5600", "4-6s"],
+        ["82%", "3.6GB"],
+        ["6%", "3"]
+      ],
+      "actionTermGroups": [
+        ["gc", "堆", "参数", "扩容", "-Xmx"]
+      ]
+    }
+  ]
+}

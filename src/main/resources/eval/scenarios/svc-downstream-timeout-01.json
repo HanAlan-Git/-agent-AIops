@@ -1,0 +1,42 @@
+{
+  "scenarioId": "svc-downstream-timeout-01",
+  "alerts": [
+    {
+      "alertName": "ServiceUnavailable",
+      "description": "服务 payment-service 调用下游超时率 71%",
+      "state": "firing",
+      "activeAt": "2026-10-14T09:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 16:59:00",
+      "level": "ERROR",
+      "service": "payment-service",
+      "instance": "pod-payment-service-7d8f9c6b5-x2k4m",
+      "message": "调用风控服务 timeout 3000ms，熔断器状态 CLOSED，无降级逻辑，错误率 71%。",
+      "metrics": {
+        "downstream": "risk-service",
+        "timeout_ms": "3000",
+        "circuit_state": "CLOSED",
+        "error_rate": "71%"
+      },
+      "queryAnyTerms": ["downstream", "timeout", "熔断"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 16:58:00",
+      "level": "ERROR",
+      "service": "risk-service",
+      "instance": "pod-risk-service-4d3c2b1a0-z9y8x",
+      "message": "风控服务 GC 停顿 8000ms，请求排队 1200。",
+      "metrics": {
+        "gc_pause_ms": "8000",
+        "queue": "1200"
+      },
+      "queryAnyTerms": ["risk", "gc", "队列"]
+    }
+  ]
+}

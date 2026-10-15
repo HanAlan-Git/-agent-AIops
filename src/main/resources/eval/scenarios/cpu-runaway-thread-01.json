@@ -1,0 +1,43 @@
+{
+  "scenarioId": "cpu-runaway-thread-01",
+  "alerts": [
+    {
+      "alertName": "HighCPUUsage",
+      "description": "服务 search-service CPU 使用率 96%，实例 pod-search-service-6f5c4d3b2-q8w7e",
+      "state": "firing",
+      "activeAt": "2026-10-14T03:05:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 11:04:00",
+      "level": "WARN",
+      "service": "search-service",
+      "instance": "pod-search-service-6f5c4d3b2-q8w7e",
+      "message": "CPU 96%，单个线程 CPU 占用 78%，线程名 es-index-refresh-3 处于 RUNNABLE 空转状态。",
+      "metrics": {
+        "cpu_usage": "96",
+        "top_thread": "es-index-refresh-3",
+        "thread_cpu": "78",
+        "thread_state": "RUNNABLE"
+      },
+      "queryAnyTerms": ["cpu", "thread"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 11:03:00",
+      "level": "ERROR",
+      "service": "search-service",
+      "instance": "pod-search-service-6f5c4d3b2-q8w7e",
+      "message": "索引刷新循环未休眠：while(true) 中缺少退避，重试间隔 0ms，已执行 1283902 次。",
+      "metrics": {
+        "error_type": "BusySpinLoop",
+        "retry_interval_ms": "0",
+        "loop_count": "1283902"
+      },
+      "queryAnyTerms": ["cpu", "循环", "loop"]
+    }
+  ]
+}

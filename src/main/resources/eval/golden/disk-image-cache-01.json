@@ -1,0 +1,23 @@
+{
+  "scenarioId": "disk-image-cache-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "image-cache-disk-pressure",
+      "description": "节点镜像缓存未配置回收阈值，历史镜像层占满系统盘并阻塞调度。",
+      "rootCauseTermGroups": [
+        ["镜像", "image", "缓存"],
+        ["回收", "gc", "阈值", "清理"]
+      ],
+      "evidenceTermGroups": [
+        ["96%"],
+        ["62GB", "78GB"],
+        ["ImageGCFailed", "threshold"]
+      ],
+      "actionTermGroups": [
+        ["回收", "gc", "阈值", "清理", "镜像"]
+      ]
+    }
+  ]
+}

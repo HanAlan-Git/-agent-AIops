@@ -1,0 +1,23 @@
+{
+  "scenarioId": "neg-insufficient-evidence-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "notes": "Negative sample: the agent must admit the evidence is insufficient instead of inventing a root cause.",
+  "acceptableDiagnoses": [
+    {
+      "id": "honest-limitation",
+      "description": "证据不足以定位根因：CPU 未达阈值且无排队、GC、错误日志佐证；应如实说明无法完成定位并列出下一步采集项。",
+      "rootCauseTermGroups": [
+        ["证据不足", "无法定位", "无法完成", "不足以判断", "insufficient"],
+        ["下一步", "建议补充", "需要采集", "待确认"]
+      ],
+      "evidenceTermGroups": [
+        ["71", "71%"],
+        ["0", "无异常", "未发现"]
+      ],
+      "actionTermGroups": [
+        ["采集", "补充", "监控", "对比", "验证"]
+      ]
+    }
+  ]
+}

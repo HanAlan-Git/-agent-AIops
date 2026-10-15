@@ -1,0 +1,42 @@
+{
+  "scenarioId": "svc-pod-crashloop-01",
+  "alerts": [
+    {
+      "alertName": "ServiceUnavailable",
+      "description": "服务 notification-service 可用副本 1/5",
+      "state": "firing",
+      "activeAt": "2026-10-14T09:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-events",
+      "timestamp": "2026-10-14 17:29:00",
+      "level": "ERROR",
+      "service": "kubernetes",
+      "instance": "node-worker-07",
+      "message": "Pod 处于 CrashLoopBackOff：就绪探针失败 12 次，重启间隔指数退避。",
+      "metrics": {
+        "reason": "CrashLoopBackOff",
+        "restarts": "12",
+        "readiness": "failed"
+      },
+      "queryAnyTerms": ["crash", "restart", "探针"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 17:28:00",
+      "level": "FATAL",
+      "service": "notification-service",
+      "instance": "pod-notification-service-8e7d6c5b4-a3s2d",
+      "message": "启动时连接配置中心失败，端口 8848 连接被拒绝，进程主动退出，退出码 1。",
+      "metrics": {
+        "exit_code": "1",
+        "config_center": "nacos:8848",
+        "error": "Connection refused"
+      },
+      "queryAnyTerms": ["启动", "配置", "nacos"]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "scenarioId": "disk-log-growth-01",
+  "alerts": [
+    {
+      "alertName": "HighDiskUsage",
+      "description": "节点 node-worker-01 的 /data 分区使用率 94%",
+      "state": "firing",
+      "activeAt": "2026-10-14T06:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 14:29:00",
+      "level": "WARN",
+      "service": "node-worker-01",
+      "instance": "node-worker-01",
+      "message": "磁盘 /data 使用率 94%，可用 6GB/100GB，最大目录 /data/logs 占 71GB。",
+      "metrics": {
+        "disk_usage": "94%",
+        "disk_available": "6GB",
+        "largest_dir": "/data/logs"
+      },
+      "queryAnyTerms": ["disk", "磁盘"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 14:28:00",
+      "level": "ERROR",
+      "service": "log-agent",
+      "instance": "node-worker-01",
+      "message": "应用日志未配置轮转：单个文件 /data/logs/app.log 已 41GB，rollingPolicy 缺失。",
+      "metrics": {
+        "file": "/data/logs/app.log",
+        "file_size": "41GB",
+        "rolling": "none"
+      },
+      "queryAnyTerms": ["log", "日志", "轮转"]
+    }
+  ]
+}

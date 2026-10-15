@@ -1,0 +1,44 @@
+{
+  "scenarioId": "memory-oomkill-restartloop-01",
+  "alerts": [
+    {
+      "alertName": "ServiceUnavailable",
+      "description": "服务 inventory-service 副本频繁重启，可用副本 2/5",
+      "state": "firing",
+      "activeAt": "2026-10-14T05:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-events",
+      "timestamp": "2026-10-14 13:29:00",
+      "level": "ERROR",
+      "service": "kernel",
+      "instance": "node-worker-03",
+      "message": "OOM Killer 触发：容器 inventory-service 内存 3.98GB 超过限制 4GB，退出码 137，重启 6 次。",
+      "metrics": {
+        "reason": "OOMKilled",
+        "exit_code": "137",
+        "restart_count": "6",
+        "memory_used": "3.98GB",
+        "memory_limit": "4GB"
+      },
+      "queryAnyTerms": ["oom", "restart", "kill"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 13:28:00",
+      "level": "ERROR",
+      "service": "inventory-service",
+      "instance": "pod-inventory-service-9z8y7x6w5-v4u3t",
+      "message": "库存快照接口一次性加载全量 SKU 到内存：SELECT * 无分页，1840 万行，单次分配 2.4GB。",
+      "metrics": {
+        "sql_rows": "18400000",
+        "heap_alloc": "2.4GB",
+        "pagination": "none"
+      },
+      "queryAnyTerms": ["oom", "内存", "全量"]
+    }
+  ]
+}

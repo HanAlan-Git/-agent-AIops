@@ -1,0 +1,23 @@
+{
+  "scenarioId": "svc-mq-backlog-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "blocked-consumer-thread-pool",
+      "description": "单条大消息长时间阻塞消费线程池，消费速率骤降导致队列积压。",
+      "rootCauseTermGroups": [
+        ["消费", "消费者", "线程池"],
+        ["阻塞", "积压", "排队", "降速"]
+      ],
+      "evidenceTermGroups": [
+        ["1582300", "1,582,300"],
+        ["35"],
+        ["28000", "3"]
+      ],
+      "actionTermGroups": [
+        ["扩容", "并发", "超时", "批量", "消费"]
+      ]
+    }
+  ]
+}

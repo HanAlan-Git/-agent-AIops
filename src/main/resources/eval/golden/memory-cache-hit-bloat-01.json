@@ -1,0 +1,23 @@
+{
+  "scenarioId": "memory-cache-hit-bloat-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "unbounded-local-cache",
+      "description": "本地缓存缺少容量上限与过期策略，session 级 key 长期累积导致内存持续上升。",
+      "rootCauseTermGroups": [
+        ["缓存", "caffeine"],
+        ["上限", "maximumsize", "过期", "expire", "无界"]
+      ],
+      "evidenceTermGroups": [
+        ["87"],
+        ["4200000", "4,200,000"],
+        ["99%", "session"]
+      ],
+      "actionTermGroups": [
+        ["上限", "过期", "淘汰", "缓存", "session"]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scenarioId": "svc-db-pool-exhausted-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "slow-sql-holding-connections",
+      "description": "未走索引的慢查询长期占用连接，把连接池耗尽并放大为 5xx。",
+      "rootCauseTermGroups": [
+        ["索引", "index", "全表扫描", "慢查询"],
+        ["连接池", "pool", "连接"]
+      ],
+      "evidenceTermGroups": [
+        ["50/50", "active 50"],
+        ["23"],
+        ["30000", "42"]
+      ],
+      "actionTermGroups": [
+        ["索引", "sql 优化", "连接池", "超时", "限流"]
+      ]
+    }
+  ]
+}

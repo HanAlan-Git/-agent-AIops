@@ -1,0 +1,42 @@
+{
+  "scenarioId": "memory-metaspace-01",
+  "alerts": [
+    {
+      "alertName": "HighMemoryUsage",
+      "description": "服务 gateway-service 容器内存使用率 93%，但 JVM 堆仅 45%",
+      "state": "firing",
+      "activeAt": "2026-10-14T05:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 12:59:00",
+      "level": "WARN",
+      "service": "gateway-service",
+      "instance": "pod-gateway-service-1a2b3c4d5-f6g7h",
+      "message": "容器内存 3.7GB/4GB，JVM 堆仅 1.8GB，Metaspace 使用 780MB 且持续增长，已加载 148932 个类。",
+      "metrics": {
+        "container_mem": "3.7GB",
+        "heap_used": "1.8GB",
+        "metaspace": "780MB",
+        "loaded_classes": "148932"
+      },
+      "queryAnyTerms": ["memory", "metaspace"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 12:58:00",
+      "level": "WARN",
+      "service": "gateway-service",
+      "instance": "pod-gateway-service-1a2b3c4d5-f6g7h",
+      "message": "动态代理类生成数量异常：CGLIB 每秒新增 120 个类，类加载器未复用，累计 86 个类加载器。",
+      "metrics": {
+        "cglib_per_sec": "120",
+        "classloader_count": "86"
+      },
+      "queryAnyTerms": ["metaspace", "class", "代理"]
+    }
+  ]
+}

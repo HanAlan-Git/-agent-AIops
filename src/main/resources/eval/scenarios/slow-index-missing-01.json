@@ -1,0 +1,43 @@
+{
+  "scenarioId": "slow-index-missing-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 user-service P99 响应时间 4.2s，超过阈值 3s",
+      "state": "firing",
+      "activeAt": "2026-10-14T10:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "database-slow-query",
+      "timestamp": "2026-10-14 18:29:00",
+      "level": "WARN",
+      "service": "mysql",
+      "instance": "mysql-primary-01",
+      "message": "慢查询 3.2s：SELECT * FROM users u LEFT JOIN user_profiles p ON u.id=p.user_id 全表扫描。",
+      "metrics": {
+        "query_time_sec": "3.2",
+        "rows_examined": "856234",
+        "index_used": "none"
+      },
+      "queryAnyTerms": ["慢查询", "sql", "index"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 18:28:00",
+      "level": "WARN",
+      "service": "user-service",
+      "instance": "pod-user-service-8e9f0a1b2-k5j6h",
+      "message": "接口 /api/v1/users/profile 耗时 4200ms，其中 DB 3800ms，缓存未命中。",
+      "metrics": {
+        "uri": "/api/v1/users/profile",
+        "response_time_ms": "4200",
+        "db_time_ms": "3800",
+        "cache_hit": "false"
+      },
+      "queryAnyTerms": ["slow", "响应"]
+    }
+  ]
+}

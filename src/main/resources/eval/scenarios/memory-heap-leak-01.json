@@ -1,0 +1,41 @@
+{
+  "scenarioId": "memory-heap-leak-01",
+  "alerts": [
+    {
+      "alertName": "HighMemoryUsage",
+      "description": "服务 order-service 的 JVM 堆内存使用率持续超过 85%，当前值为 91%，实例: pod-order-service-5c7d8e9f1-m3n2p。",
+      "state": "firing",
+      "activeAt": "2026-10-14T02:45:00Z",
+      "duration": "15m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 10:58:00",
+      "level": "WARN",
+      "service": "order-service",
+      "instance": "pod-order-service-5c7d8e9f1-m3n2p",
+      "message": "JVM 堆内存 3.8GB/4GB，Old Gen 89%，过去 10 分钟发生 15 次 Full GC。",
+      "metrics": {"heap_used": "3.8GB", "heap_max": "4GB", "old_gen": "89%", "full_gc_count": "15"}
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 10:57:00",
+      "level": "ERROR",
+      "service": "order-service",
+      "instance": "pod-order-service-5c7d8e9f1-m3n2p",
+      "message": "订单导出任务持续缓存大对象，缓存条目未释放，堆内对象数量持续增长。",
+      "metrics": {"cache_entries": "128000", "suspected_leak": "true"}
+    },
+    {
+      "topic": "system-events",
+      "timestamp": "2026-10-14 10:56:00",
+      "level": "WARN",
+      "service": "kubernetes",
+      "instance": "node-worker-02",
+      "message": "Pod 内存接近限制，尚未发生 OOMKilled。",
+      "metrics": {"memory_limit": "4GB", "memory_used": "3.8GB"}
+    }
+  ]
+}

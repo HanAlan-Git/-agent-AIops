@@ -1,0 +1,39 @@
+{
+  "scenarioId": "cpu-thread-pool-backlog-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "thread-pool-backlog",
+      "description": "请求工作线程池饱和且任务队列积压，导致 payment-service CPU 持续偏高。",
+      "rootCauseTermGroups": [
+        ["线程池", "worker pool", "工作线程"],
+        ["队列", "backlog", "积压", "排队"]
+      ],
+      "evidenceTermGroups": [
+        ["92", "92.0"],
+        ["200", "active=200", "max=200"],
+        ["1840", "backlog"]
+      ],
+      "actionTermGroups": [
+        ["线程池", "worker"],
+        ["队列", "限流", "扩容", "消费者"]
+      ]
+    },
+    {
+      "id": "request-backlog-capacity-shortage",
+      "description": "请求积压超过当前 worker 的处理能力，需先控制流量并恢复消费能力。",
+      "rootCauseTermGroups": [
+        ["请求", "任务", "回调"],
+        ["积压", "排队", "backlog"]
+      ],
+      "evidenceTermGroups": [
+        ["1840", "backlog"],
+        ["200", "active=200", "max=200"]
+      ],
+      "actionTermGroups": [
+        ["限流", "扩容", "消费", "线程池"]
+      ]
+    }
+  ]
+}

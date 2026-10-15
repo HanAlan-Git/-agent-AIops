@@ -1,0 +1,23 @@
+{
+  "scenarioId": "svc-pod-crashloop-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "config-center-unreachable-crashloop",
+      "description": "配置中心不可达导致进程启动即退出，就绪探针失败形成崩溃重启循环。",
+      "rootCauseTermGroups": [
+        ["配置中心", "nacos", "配置"],
+        ["启动", "连接", "不可达", "拒绝"]
+      ],
+      "evidenceTermGroups": [
+        ["CrashLoopBackOff"],
+        ["12"],
+        ["8848", "Connection refused"]
+      ],
+      "actionTermGroups": [
+        ["配置中心", "探针", "启动", "回滚", "依赖"]
+      ]
+    }
+  ]
+}

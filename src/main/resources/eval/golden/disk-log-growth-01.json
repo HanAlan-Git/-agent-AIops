@@ -1,0 +1,23 @@
+{
+  "scenarioId": "disk-log-growth-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "missing-log-rotation",
+      "description": "应用日志缺少轮转与清理策略，单文件持续增长占满数据盘。",
+      "rootCauseTermGroups": [
+        ["日志", "log", "轮转", "rolling"],
+        ["磁盘", "disk", "占满", "增长"]
+      ],
+      "evidenceTermGroups": [
+        ["94%", "6GB"],
+        ["41GB", "app.log"],
+        ["/data/logs", "71GB"]
+      ],
+      "actionTermGroups": [
+        ["轮转", "清理", "归档", "rollingPolicy", "压缩"]
+      ]
+    }
+  ]
+}

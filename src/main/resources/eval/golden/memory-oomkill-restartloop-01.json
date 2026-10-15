@@ -1,0 +1,23 @@
+{
+  "scenarioId": "memory-oomkill-restartloop-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "unpaged-full-load-oom",
+      "description": "全量加载无分页查询把堆内存推过容器限制，触发 OOMKilled 与重启循环。",
+      "rootCauseTermGroups": [
+        ["分页", "全量", "一次性加载", "select *"],
+        ["内存", "堆", "oom"]
+      ],
+      "evidenceTermGroups": [
+        ["137", "OOMKilled"],
+        ["3.98GB", "4GB"],
+        ["18400000", "2.4GB"]
+      ],
+      "actionTermGroups": [
+        ["分页", "流式", "分批", "限制", "内存"]
+      ]
+    }
+  ]
+}

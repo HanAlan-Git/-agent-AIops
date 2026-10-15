@@ -1,0 +1,105 @@
+server:
+  port: 9900
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+file:
+  upload:
+    path: ./uploads
+    allowed-extensions: txt,md
+
+milvus:
+  host: localhost
+  port: 19530
+  username: ""
+  password: ""
+  database: default
+  timeout: 10000
+
+# Spring AI Alibaba DashScope 配置
+spring:
+  profiles:
+    active: local
+  ai:
+    model:
+      chat: deepseek
+      embedding: dashscope
+    deepseek:
+      # 项目专用变量名，避免与本机其它工具的 DEEPSEEK_API_KEY 互相覆盖
+      api-key: ${DEEPSEEK_API_KEY_AGENT}
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.3
+#    dashscope:
+#      api-key: ${DASHSCOPE_API_KEY}
+#      chat:
+#        options:
+#          timeout: 180000  # 超时时间180秒（3分钟）
+#      retry:
+#        max-attempts: 3  # 最大重试次数
+#        backoff:
+#          initial-interval: 2000  # 初始重试间隔2秒
+#          multiplier: 2  # 重试间隔倍数
+#          max-interval: 10000  # 最大重试间隔10秒
+    
+    # Spring AI MCP 客户端配置
+    # 如果使用mock数据，请注释这部分内容
+    mcp:
+      client:
+        # 本地学习阶段先关闭远程 MCP，避免占位 SSE 地址导致应用启动失败。
+        # 接入真实腾讯云 MCP 时改为 true，并填写真实的 SSE Endpoint。
+        enabled: false
+        name: tencent-mcp-server
+        version: 1.0.0
+        request-timeout: 60s
+        type: ASYNC
+#        sse:
+#          connections:
+#            tencent-cls:
+#              url: https://mcp-api.tencent-cloud.com
+#              sse-endpoint: /sse/92XXXXXXXXb4  # 完整的SSE端点路径
+
+# 阿里云 DashScope Embedding API 配置
+dashscope:
+  api:
+    key: ${DASHSCOPE_API_KEY}
+  embedding:
+    model: text-embedding-v4  # 阿里云文本向量化模型
+
+# 文档分片配置
+document:
+  chunk:
+    max-size: 800  # 每个分片最大字符数
+    overlap: 100   # 分片之间的重叠字符数
+
+# RAG 配置
+rag:
+  top-k: 3  # 检索返回的最相似文档数量
+  model: "qwen3-max"  # 大语言模型名称
+
+# Prometheus 配置
+prometheus:
+  base-url: http://localhost:9090
+  timeout: 10  # 超时时间（秒）
+  mock-enabled: true  # 本地学习阶段使用内置模拟告警
+
+# CLS 云日志服务配置
+cls:
+  mock-enabled: true  # 本地学习阶段使用内置模拟日志
+
+# 离线评测配置
+eval:
+  trace:
+    output-dir: ./eval-reports  # 每次运行的 trace 与批量汇总落盘目录
+  pricing:
+    prompt-cny-per-million: 2.0       # 用于成本估算，替换为你所用模型的真实价目
+    completion-cny-per-million: 8.0
+    currency: CNY
+    source: "DeepSeek public price list"
+  runner:
+    base-url: http://localhost:9900   # 批量评测驱动进程访问的服务地址
+    timeout-seconds: 600              # 单个场景的最长等待时间

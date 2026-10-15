@@ -1,0 +1,23 @@
+{
+  "scenarioId": "svc-downstream-timeout-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "downstream-timeout-no-circuit-breaker",
+      "description": "下游服务停顿而调用方缺少熔断与降级，超时被放大成全站不可用。",
+      "rootCauseTermGroups": [
+        ["熔断", "降级", "circuit"],
+        ["下游", "依赖", "downstream"]
+      ],
+      "evidenceTermGroups": [
+        ["3000", "timeout"],
+        ["71%", "CLOSED"],
+        ["1200", "8000"]
+      ],
+      "actionTermGroups": [
+        ["熔断", "降级", "超时", "重试", "隔离"]
+      ]
+    }
+  ]
+}

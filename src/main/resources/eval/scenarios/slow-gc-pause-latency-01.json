@@ -1,0 +1,42 @@
+{
+  "scenarioId": "slow-gc-pause-latency-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 recommend-service 接口毛刺 P99 5.6s，平均仅 180ms",
+      "state": "firing",
+      "activeAt": "2026-10-14T12:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 19:59:00",
+      "level": "WARN",
+      "service": "recommend-service",
+      "instance": "pod-recommend-service-5f4e3d2c1-b0a987",
+      "message": "每 3 分钟出现一次 4-6s 停顿，与 Full GC 时间点完全重合，pause 5600ms。",
+      "metrics": {
+        "full_gc_interval_min": "3",
+        "pause_ms": "5600",
+        "old_gen": "82%"
+      },
+      "queryAnyTerms": ["gc", "停顿", "pause"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 19:58:00",
+      "level": "WARN",
+      "service": "recommend-service",
+      "instance": "pod-recommend-service-5f4e3d2c1-b0a987",
+      "message": "堆内存 3.6GB/4GB，存活对象多，Full GC 后仅回收 6%。",
+      "metrics": {
+        "heap_used": "3.6GB",
+        "heap_max": "4GB",
+        "reclaimed": "6%"
+      },
+      "queryAnyTerms": ["gc", "堆", "回收"]
+    }
+  ]
+}

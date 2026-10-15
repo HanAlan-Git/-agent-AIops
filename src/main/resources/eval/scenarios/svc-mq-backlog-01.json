@@ -1,0 +1,42 @@
+{
+  "scenarioId": "svc-mq-backlog-01",
+  "alerts": [
+    {
+      "alertName": "ServiceUnavailable",
+      "description": "服务 billing-service 出账延迟超过 2 小时",
+      "state": "firing",
+      "activeAt": "2026-10-14T10:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 17:59:00",
+      "level": "WARN",
+      "service": "billing-service",
+      "instance": "pod-billing-service-6a5b4c3d2-e1f0g",
+      "message": "消息队列积压 1582300 条，消费速率从 800/s 降到 35/s，消费者数 3。",
+      "metrics": {
+        "pending_messages": "1582300",
+        "consume_rate": "35",
+        "consumers": "3"
+      },
+      "queryAnyTerms": ["mq", "积压", "queue"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 17:57:00",
+      "level": "ERROR",
+      "service": "billing-service",
+      "instance": "pod-billing-service-6a5b4c3d2-e1f0g",
+      "message": "消费线程池被单条大消息阻塞：单条处理耗时 28000ms，线程池大小 3。",
+      "metrics": {
+        "thread_pool": "3",
+        "single_msg_ms": "28000",
+        "blocked": "true"
+      },
+      "queryAnyTerms": ["消费", "线程池", "阻塞"]
+    }
+  ]
+}

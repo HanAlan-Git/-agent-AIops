@@ -1,0 +1,23 @@
+{
+  "scenarioId": "disk-inode-exhaustion-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "inode-exhaustion",
+      "description": "海量临时小文件耗尽 inode，容量充足但无法创建新文件。",
+      "rootCauseTermGroups": [
+        ["inode"],
+        ["临时文件", "小文件", "tmp", "残留"]
+      ],
+      "evidenceTermGroups": [
+        ["100%"],
+        ["2300000", "2,300,000"],
+        ["42%", "No space left"]
+      ],
+      "actionTermGroups": [
+        ["清理", "临时文件", "删除", "定时任务", "inode"]
+      ]
+    }
+  ]
+}

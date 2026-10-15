@@ -1,0 +1,23 @@
+{
+  "scenarioId": "neg-tool-param-invalid-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "notes": "Negative sample: exercises ToolGuard parameter validation instead of a silent fallback.",
+  "acceptableDiagnoses": [
+    {
+      "id": "invalid-parameter-handling",
+      "description": "工具参数非法时必须在入口被拒绝并返回可解释错误，而不是用默认值静默返回无关数据；报告需说明参数被拒这一事实。",
+      "rootCauseTermGroups": [
+        ["参数", "非法", "不合法", "invalid"],
+        ["拒绝", "拦截", "不支持", "未生效"]
+      ],
+      "evidenceTermGroups": [
+        ["logTopic", "region", "参数"],
+        ["拒绝", "非法", "不支持"]
+      ],
+      "actionTermGroups": [
+        ["校验", "重试", "修正", "参数"]
+      ]
+    }
+  ]
+}

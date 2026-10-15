@@ -1,0 +1,42 @@
+{
+  "scenarioId": "slow-thread-pool-queue-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 api-gateway P95 响应时间 1.9s",
+      "state": "firing",
+      "activeAt": "2026-10-14T11:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 19:29:00",
+      "level": "WARN",
+      "service": "api-gateway",
+      "instance": "pod-api-gateway-9a8b7c6d5-e4f3g",
+      "message": "Tomcat 工作线程全部占用：busy 200/200，accept queue 137，请求排队 1900ms。",
+      "metrics": {
+        "tomcat_busy": "200",
+        "tomcat_max": "200",
+        "accept_queue": "137",
+        "queue_wait_ms": "1900"
+      },
+      "queryAnyTerms": ["线程", "队列", "排队"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 19:27:00",
+      "level": "WARN",
+      "service": "api-gateway",
+      "instance": "pod-api-gateway-9a8b7c6d5-e4f3g",
+      "message": "下游调用平均耗时 1800ms 且同步阻塞，单请求占用线程 1.8s。",
+      "metrics": {
+        "downstream_avg_ms": "1800",
+        "blocking": "true"
+      },
+      "queryAnyTerms": ["下游", "阻塞", "耗时"]
+    }
+  ]
+}

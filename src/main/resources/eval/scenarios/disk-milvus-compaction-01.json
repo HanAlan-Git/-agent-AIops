@@ -1,0 +1,41 @@
+{
+  "scenarioId": "disk-milvus-compaction-01",
+  "alerts": [
+    {
+      "alertName": "HighDiskUsage",
+      "description": "向量库节点 milvus-standalone 数据盘使用率 91% 且写入延迟升高",
+      "state": "firing",
+      "activeAt": "2026-10-14T07:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 15:29:00",
+      "level": "WARN",
+      "service": "milvus-standalone",
+      "instance": "node-worker-05",
+      "message": "Milvus 数据盘使用率 91%，compaction 任务积压 37 个未完成，删除标记占比 48%。",
+      "metrics": {
+        "disk_usage": "91%",
+        "pending_compactions": "37",
+        "deleted_ratio": "48%"
+      },
+      "queryAnyTerms": ["disk", "milvus", "compaction"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 15:27:00",
+      "level": "WARN",
+      "service": "milvus-standalone",
+      "instance": "node-worker-05",
+      "message": "大量删除标记未回收：deleted entities 占 48%，412 个 segment 无法合并。",
+      "metrics": {
+        "deleted_ratio": "48%",
+        "segment_count": "412"
+      },
+      "queryAnyTerms": ["milvus", "segment", "删除"]
+    }
+  ]
+}

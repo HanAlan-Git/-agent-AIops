@@ -1,0 +1,23 @@
+{
+  "scenarioId": "memory-metaspace-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "metaspace-classloader-leak",
+      "description": "动态代理类反复生成且类加载器未复用，Metaspace 持续增长导致容器内存超限。",
+      "rootCauseTermGroups": [
+        ["metaspace", "元空间"],
+        ["类加载器", "classloader", "类", "代理", "cglib"]
+      ],
+      "evidenceTermGroups": [
+        ["3.7GB", "780MB"],
+        ["148932", "120"],
+        ["heap", "堆"]
+      ],
+      "actionTermGroups": [
+        ["复用", "缓存", "限制", "maxmetaspace", "类加载器"]
+      ]
+    }
+  ]
+}

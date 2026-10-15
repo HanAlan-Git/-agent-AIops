@@ -1,0 +1,39 @@
+{
+  "scenarioId": "memory-heap-leak-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics"],
+  "acceptableDiagnoses": [
+    {
+      "id": "unreleased-export-cache",
+      "description": "订单导出任务缓存的大对象未释放，导致 JVM 堆持续增长并触发频繁 Full GC。",
+      "rootCauseTermGroups": [
+        ["缓存", "大对象", "export"],
+        ["未释放", "泄漏", "持续增长"]
+      ],
+      "evidenceTermGroups": [
+        ["3.8GB", "3.8"],
+        ["15", "Full GC"],
+        ["128000", "缓存条目"]
+      ],
+      "actionTermGroups": [
+        ["heap dump", "堆转储", "内存快照"],
+        ["缓存", "释放", "上限", "淘汰"]
+      ]
+    },
+    {
+      "id": "jvm-memory-pressure",
+      "description": "JVM Old Gen 接近上限且频繁 Full GC，存在内存泄漏或未受控缓存风险。",
+      "rootCauseTermGroups": [
+        ["Old Gen", "老年代", "JVM", "堆内存"],
+        ["内存泄漏", "内存压力", "缓存"]
+      ],
+      "evidenceTermGroups": [
+        ["89%", "Old Gen"],
+        ["15", "Full GC"]
+      ],
+      "actionTermGroups": [
+        ["heap dump", "堆转储", "内存快照", "分析"]
+      ]
+    }
+  ]
+}

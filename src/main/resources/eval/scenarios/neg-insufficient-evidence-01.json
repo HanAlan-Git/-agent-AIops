@@ -1,0 +1,41 @@
+{
+  "scenarioId": "neg-insufficient-evidence-01",
+  "alerts": [
+    {
+      "alertName": "HighCPUUsage",
+      "description": "服务 legacy-service CPU 使用率 71%，未超过 80% 阈值但持续 3 小时",
+      "state": "firing",
+      "activeAt": "2026-10-14T12:30:00Z",
+      "duration": "3h"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 20:29:00",
+      "level": "WARN",
+      "service": "legacy-service",
+      "instance": "pod-legacy-service-1f2e3d4c5-b6a789",
+      "message": "CPU 稳定在 71%，无排队、无 GC 异常，线程池队列积压 0。",
+      "metrics": {
+        "cpu_usage": "71",
+        "queue_backlog": "0",
+        "gc_count": "2"
+      },
+      "queryAnyTerms": ["cpu"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 20:28:00",
+      "level": "INFO",
+      "service": "legacy-service",
+      "instance": "pod-legacy-service-1f2e3d4c5-b6a789",
+      "message": "日志中未发现异常，错误日志 0 条，请求量与上周同期持平。",
+      "metrics": {
+        "error_count": "0",
+        "qps_delta": "0%"
+      },
+      "queryAnyTerms": ["应用", "日志"]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "scenarioId": "svc-db-pool-exhausted-01",
+  "alerts": [
+    {
+      "alertName": "ServiceUnavailable",
+      "description": "服务 order-service 接口 5xx 比例 62%",
+      "state": "firing",
+      "activeAt": "2026-10-14T08:30:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 16:29:00",
+      "level": "ERROR",
+      "service": "order-service",
+      "instance": "pod-order-service-5c7d8e9f1-m3n2p",
+      "message": "数据库连接池耗尽：active 50/50，waiting 23，获取连接超时 30000ms。",
+      "metrics": {
+        "pool_active": "50",
+        "pool_max": "50",
+        "waiting_threads": "23",
+        "timeout_ms": "30000"
+      },
+      "queryAnyTerms": ["pool", "连接池", "error"]
+    },
+    {
+      "topic": "database-slow-query",
+      "timestamp": "2026-10-14 16:28:00",
+      "level": "WARN",
+      "service": "mysql",
+      "instance": "mysql-primary-01",
+      "message": "慢查询持连接 42s：SELECT * FROM orders WHERE user_id=? AND status IN (...) 未走索引。",
+      "metrics": {
+        "query_time_sec": "42",
+        "rows_examined": "1245678",
+        "index_used": "none"
+      },
+      "queryAnyTerms": ["慢查询", "sql", "index"]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "scenarioId": "disk-image-cache-01",
+  "alerts": [
+    {
+      "alertName": "HighDiskUsage",
+      "description": "节点 node-worker-06 系统盘使用率 96%，Pod 无法调度",
+      "state": "firing",
+      "activeAt": "2026-10-14T08:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "system-metrics",
+      "timestamp": "2026-10-14 15:59:00",
+      "level": "WARN",
+      "service": "node-worker-06",
+      "instance": "node-worker-06",
+      "message": "系统盘使用率 96%，/var/lib/docker 占 78GB，其中镜像层 62GB。",
+      "metrics": {
+        "disk_usage": "96%",
+        "docker_dir": "78GB",
+        "image_layers": "62GB"
+      },
+      "queryAnyTerms": ["disk", "docker"]
+    },
+    {
+      "topic": "system-events",
+      "timestamp": "2026-10-14 15:58:00",
+      "level": "WARN",
+      "service": "kubernetes",
+      "instance": "node-worker-06",
+      "message": "kubelet 触发镜像回收失败：imageGCHighThresholdPercent 未配置。",
+      "metrics": {
+        "event": "ImageGCFailed",
+        "threshold": "none"
+      },
+      "queryAnyTerms": ["image", "gc", "节点"]
+    }
+  ]
+}

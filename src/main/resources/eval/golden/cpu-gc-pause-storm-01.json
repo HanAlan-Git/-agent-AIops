@@ -1,0 +1,23 @@
+{
+  "scenarioId": "cpu-gc-pause-storm-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "gc-pause-storm",
+      "description": "对象晋升失败引发 GC 风暴，GC 线程争抢 CPU 导致接口超时。",
+      "rootCauseTermGroups": [
+        ["gc", "垃圾回收", "回收"],
+        ["晋升失败", "promotion failed", "old gen", "老年代"]
+      ],
+      "evidenceTermGroups": [
+        ["88"],
+        ["GC", "gc"],
+        ["87", "promotion failed"]
+      ],
+      "actionTermGroups": [
+        ["gc 参数", "堆", "内存", "扩容", "-Xmx"]
+      ]
+    }
+  ]
+}

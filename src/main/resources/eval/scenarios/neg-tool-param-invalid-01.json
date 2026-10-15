@@ -1,0 +1,27 @@
+{
+  "scenarioId": "neg-tool-param-invalid-01",
+  "alerts": [
+    {
+      "alertName": "SlowResponse",
+      "description": "服务 media-service 上传接口偶发超时",
+      "state": "firing",
+      "activeAt": "2026-10-14T13:00:00Z",
+      "duration": "18m"
+    }
+  ],
+  "logs": [
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 20:59:00",
+      "level": "WARN",
+      "service": "media-service",
+      "instance": "pod-media-service-3e2d1c0b9-a8f765",
+      "message": "上传接口耗时 2400ms，其中对象存储写入 2100ms。",
+      "metrics": {
+        "response_time_ms": "2400",
+        "oss_time_ms": "2100"
+      },
+      "queryAnyTerms": ["slow", "上传"]
+    }
+  ]
+}

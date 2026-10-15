@@ -1,0 +1,23 @@
+{
+  "scenarioId": "cpu-runaway-thread-01",
+  "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
+  "acceptableDiagnoses": [
+    {
+      "id": "busy-spin-loop",
+      "description": "索引刷新线程缺少退避导致忙等待自旋，单线程打满 CPU。",
+      "rootCauseTermGroups": [
+        ["忙等待", "空转", "自旋", "busy spin"],
+        ["索引", "线程", "循环"]
+      ],
+      "evidenceTermGroups": [
+        ["96"],
+        ["es-index-refresh-3"],
+        ["0ms", "1283902", "缺少退避"]
+      ],
+      "actionTermGroups": [
+        ["退避", "休眠", "sleep", "限流"]
+      ]
+    }
+  ]
+}
