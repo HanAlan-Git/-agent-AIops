@@ -17,6 +17,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -35,6 +36,11 @@ public class EvalBatchRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(EvalBatchRunner.class);
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+
+    /** How long to wait for a trace file to appear after its SSE stream ended. */
+    private static final long TRACE_WAIT_TIMEOUT_MS = 120_000L;
+    /** Poll interval while waiting for the trace file. */
+    private static final long TRACE_WAIT_POLL_MS = 250L;
 
     private final EvalTraceStore traceStore;
     private final EvalGoldenScenarioService scenarioService;
@@ -106,12 +112,44 @@ public class EvalBatchRunner {
         return traces;
     }
 
+    /**
+     * Runs one scenario and waits for its trace to land on disk.
+     *
+     * <p>The SSE {@code done} event and the trace file are written by two different code paths
+     * inside the server: the controller emits {@code done} first and persists the trace later in
+     * its {@code finally} block. So reading the file immediately after the stream ends races
+     * against the write — observed as {@code Unexpected end-of-input} and, once the write became
+     * atomic, as a file that simply did not exist yet. Neither outcome is an error, so the driver
+     * polls patiently instead of treating the first miss as a failure.
+     */
     private EvalRunTrace runOnce(String scenarioId, int round) {
         if (!consumeStream(scenarioId, round)) {
             logger.warn("场景 {} 第 {} 轮未正常结束", scenarioId, round);
         }
         String runId = EvalTraceContext.batchRunId(scenarioId, round);
-        return traceStore.load(runId).orElse(null);
+        long deadline = System.currentTimeMillis() + TRACE_WAIT_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Optional<EvalRunTrace> trace = traceStore.load(runId);
+                if (trace.isPresent()) {
+                    return trace.get();
+                }
+            } catch (RuntimeException e) {
+                // 文件存在但还没写完：等一下再读
+                logger.debug("Trace {} 暂不可读，继续等待", runId, e);
+            }
+            sleep(TRACE_WAIT_POLL_MS);
+        }
+        logger.error("等待 Trace 落盘超时（{} ms）: {}", TRACE_WAIT_TIMEOUT_MS, runId);
+        return null;
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private boolean consumeStream(String scenarioId, int round) {

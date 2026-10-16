@@ -62,7 +62,9 @@ public final class EvalBatchCli {
             System.out.println("================ 评测汇总 ================");
             System.out.printf("场景数           : %d%n", summary.getScenarios());
             System.out.printf("轮次 / 运行数    : %d / %d%n", summary.getRounds(), summary.getRuns());
-            System.out.printf("任务成功率       : %.2f%n", summary.getSuccessRate());
+            System.out.printf("执行成功率       : %.2f  (流程跑完的占比)%n", summary.getSuccessRate());
+            System.out.printf("诊断达标率       : %.2f  (%d/%d，必调工具+根因+证据全覆盖且总分>=80)%n",
+                    summary.getTaskSuccessRate(), summary.getTaskSuccessRuns(), summary.getRuns());
             System.out.printf("平均总分         : %.2f%n", summary.getAvgScore());
             System.out.printf("工具调用准确率   : %.2f (%d 次调用)%n",
                     summary.getToolCallAccuracy(), summary.getToolCalls());

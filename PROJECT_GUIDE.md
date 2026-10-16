@@ -1399,3 +1399,162 @@ SuperBizAgent 的核心不是单纯的聊天页面，而是一个把 **大模型
 AI Ops 再通过 Supervisor 调度 Planner 和 Executor，
 最终把真实监控证据整理成可读的运维结论。
 ```
+
+---
+
+## 19. 离线评测体系：设计、数据链路与两个真实缺陷
+
+这一章补充第 1~18 章未曾展开的部分：项目里的评测体系是怎么工作的、每个数字怎么算出来的，以及跑批量评测时暴露出的两个「评测本身不够准」的缺陷。
+
+### 19.1 设计核心：金标准绝不进入 Agent 的视野
+
+评测数据分两处存放，**物理隔离**：
+
+| 目录 | 内容 | 谁能读到 |
+|---|---|---|
+| `src/main/resources/eval/scenarios/*.json` | 注入的告警 + 日志（**原材料**） | Agent 的工具能查到 |
+| `src/main/resources/eval/golden/*.json` | 金标准诊断 + 根因/证据/处置词组（**答案**） | **只有评分器** |
+
+`EvalScenario` 的类注释写明了这个意图：
+
+> Ground-truth fields intentionally stay outside this runtime model so they cannot be exposed to an agent through a tool call.
+
+**为什么必须这样**：如果金标准的内容能通过任何工具被模型读到，评测就变成抄答案，分数会虚高且失去意义。
+
+### 19.2 一次评测的完整数据链路
+
+```text
+EvalBatchCli
+  └── EvalBatchRunner.runAll(scenarioIds, rounds, parallelism)
+        ├── 逐场景 POST /api/ai_ops/eval/{id}?round=N   （确定性 runId：eval-{id}-r{N}）
+        │     └── ChatController.evaluateAiOps
+        │           ├── EvalScenarioContext.set(scenario)      ← ThreadLocal 绑定场景
+        │           ├── EvalTraceContext.start(scenario, runId, round)
+        │           ├── AiOpsService → Supervisor / Planner / Executor
+        │           │     └── 工具优先读 EvalScenarioContext，而非通用 mock
+        │           ├── EvalTraceContext.completeSuccess/Failure(report)
+        │           ├── EvalScoringService.score(trace)        ← 按 golden 打分
+        │           └── EvalTraceStore.save(trace)             ← 原子写 eval-reports/
+        └── 轮询等待 trace 落盘 → EvalTraceStore.load(runId)
+  └── EvalTraceStore.summarize(traces) → summary-<ts>.json
+```
+
+**两个关键设计**：
+
+1. **确定性 runId**：`eval-{scenarioId}-r{round}`。驱动侧不需要新增任何接口、也不用从 SSE 里解析结果，直接按文件名读回——这是评测能"零新增 API"的原因。
+2. **ThreadLocal 隔离**：`EvalScenarioContext` 与 `EvalTraceContext` 都是线程作用域的。因为 `--parallelism` 支持并发跑，用全局变量会让两个场景的数据串味。
+
+### 19.3 评分口径（每个数字怎么来的）
+
+**单次运行**（`EvalScoringService`）：
+
+```java
+toolCallAccuracy  = 命中「必调 ∪ 可选」工具且 success==true 的调用数 / 总调用数
+requiredToolRecall = 调到的必调工具「种类数」/ 金标准要求的种类数   // 调 5 次同一工具只算 1 种
+coverage           = 命中词组数 / 词组总数          // 组内任一近义词出现即命中；组为空返回 1.0
+
+total = 25 × (requiredToolRecall × 0.6 + toolCallAccuracy × 0.4)
+      + 30 × rootCauseCoverage + 25 × evidenceCoverage + 10 × actionCoverage
+      + (trace.isSuccess() && 报告非空 ? 10 : 0)                  // 上限 100
+
+taskSuccess = trace.isSuccess()
+           && requiredToolRecall == 1 && rootCauseCoverage == 1 && evidenceCoverage == 1
+           && total >= 80                                          // actionCoverage 不参与
+```
+
+**批量汇总**（`EvalTraceStore.summarize`）需要特别注意三点：
+
+| 指标 | 计算方式 | 容易误读的点 |
+|---|---|---|
+| `successRate` | `trace.isSuccess()` 为真的条数 / 总数 | **它是「执行成功率」（流程跑完没），不是答对率** |
+| `taskSuccessRate` | `score.taskSuccess` 为真的条数 / 总数 | 这个才是**诊断达标率** |
+| `avgScore` | `Σ total / scoredRuns` | 分母是**已评分**条数，未评分的 trace 不进分母 |
+| `p50 / p95` | 排序后取 `sorted[ceil(q × n) - 1]` | **最近秩法，不做插值**；样本少时 p95 等于最大值 |
+| `avgPromptTokens` | `Σ promptTokens / runs` | 分母是 **runs**；某次未上报 token 时会把 0 摊进平均，故需同时看 `tokensReportedRuns` |
+| 成本 | `prompt/1e6 × 价目 + completion/1e6 × 价目` | 价目来自 `eval.pricing.*`；**缓存命中未单独建模，属上限估计** |
+
+**实测数据（23 场景 × 3 轮 = 69 次运行）**：
+
+```text
+执行成功率 69/69 ｜ 诊断达标率 28/69 ｜ 平均总分 86.87 ｜ 工具调用准确率 1.00
+平均步数 12.91 ｜ 延迟 平均 17.6s / P50 17.3s / P95 21.3s / 最大 22.9s
+Token 平均 prompt 26484 + completion 2967（69/69 均上报）｜ 单次成本 ¥0.08
+失败标签：EVIDENCE_GAP 38 ｜ ROOT_CAUSE_MISS 19 ｜ ACTION_GAP 5
+         TOOL_INVALID_OR_FAILED 0 ｜ RAG_NO_RESULT 0
+```
+
+**结论**：主要短板是**举证不足**而非判断错——`EVIDENCE_GAP`(38) 远高于 `ROOT_CAUSE_MISS`(19)，说明 Agent 通常能给出方向正确的根因，但报告里没有充分引用日志中的具体数值。
+
+### 19.4 缺陷一：单一 `success` 字段混淆了两件事
+
+**现象**：69 次运行**全部**带 `TOOL_INVALID_OR_FAILED` 标签，但逐条查 trace 发现 891 次调用里**真实执行错误为 0 次**。
+
+**根因**在 `QueryLogsTools`：
+
+```java
+output.setSuccess(!logEntries.isEmpty());   // 注释写「构建成功响应」，值却是「有没有查到数据」
+```
+
+一次参数合法、Milvus 正常的查询，仅因库里没有匹配日志就被标记为 `success=false`；而 `EvalTraceContext.finishTool` 用字符串特征判断成败，读到 `"success": false` 就记为工具失败。**同一个布尔值服务两个读者，语义被混淆了**：
+
+| 读者 | 它理解的 `success: false` |
+|---|---|
+| **模型** | "这次没查到东西，换个思路"——合理的行为提示 |
+| **评测器** | "这次工具调用失败了"——**误读** |
+
+实测 919 次调用中 **423 次是「执行成功但无数据」**，把工具准确率从真实的 1.00 压到 0.54。
+
+**修复**：引入三态语义，把「执行是否成功」与「是否有数据」拆开：
+
+| 状态 | 含义 | 计入 `toolCallAccuracy` |
+|---|---|---|
+| `OK` | 有数据 | ✅ |
+| `EMPTY` | 执行成功、无匹配数据 | ✅（诚实查空不是失败） |
+| `ERROR` | 参数被拒 / 异常 / 依赖不可用 | ❌ |
+
+`EvalTraceContext.finishTool` 优先读取工具声明的 `status`，读不到时才回退到字符串启发式（兼容旧载荷）。修复后工具准确率 **0.54 → 1.00**，该标签误报归零。
+
+### 19.5 缺陷二：批量驱动与服务端落盘的竞态
+
+**现象**：全量跑完后目录里有 69 条 trace，但 `summary.json` 只统计到 **1 次运行**。
+
+**排查过程**：
+
+```
+① 文件名与内部 runId 完全一致（69/69）→ 命名规则没问题
+② 用同一套逻辑手工重读 69 条 → 全部解析成功 → 数据本身没问题
+③ 打开驱动的日志：Caused by: JsonParseException: Unexpected end-of-input
+④ 落盘时间线：
+     17:48:56.556  EvalBatchRunner: 第 2 轮完成，累计 trace 0 条
+     17:48:56.560  服务端才写入 eval-cpu-...-r2.json     ← 4 毫秒后才落盘
+```
+
+**根因**：`ChatController` 先 `emitter.send(done)`，**之后**才在 `finally` 里保存 trace。驱动读到 `done` 就去读文件，必然抢先；`EvalTraceStore.load` 当时也没有容错，一次解析失败就抛异常，导致整个收集流程拿不到结果。
+
+**修复**：
+
+1. **原子写**（`save`）：先写临时文件再 `Files.move(..., ATOMIC_MOVE)`，读者要么看到旧状态、要么看到完整新状态，不会读到半截 JSON；
+2. **轮询等待**（`EvalBatchRunner.runOnce`）：`done` 事件与落盘之间本就没有因果顺序，所以改为最多等 120 秒、每 250 ms 检查一次；
+3. **容错读取**（`load`）：解析失败先重试而非直接抛异常。
+
+修复后同一批数据可完整聚合，`summary.json` 的 `runs` = 69。
+
+### 19.6 从这两个缺陷得到的教训
+
+1. **评测代码本身也需要被测试**。缺陷一是「评测体系自己不准」，比被测代码的 bug 更危险——它会让所有结论失真。它是被一条直接调用真实工具的单测断言失败暴露的。
+2. **只跑一两个场景发现不了口径问题**。单场景跑出 0.54 时容易误判为"模型乱调工具"；跑到 23 场景 × 3 轮、看到"69/69 全带该标签但真实错误为 0"才暴露出是口径缺陷。样本量本身就是一种验证手段。
+3. **"执行成功"与"诊断正确"必须分开表述**。混用会把执行成功率（69/69）误读成答对率，这在简历和汇报里都是实质性错误。
+
+### 19.7 相关文件速查
+
+| 文件 | 职责 |
+|---|---|
+| `eval/EvalBatchCli.java` / `EvalBatchRunner.java` | 批量驱动：发现语料、并发触发、轮询取回、聚合输出 |
+| `eval/EvalScenario.java` / `EvalGoldenScenario.java` | 运行时场景与金标准（刻意分成两个模型） |
+| `eval/EvalScenarioService.java` / `EvalGoldenScenarioService.java` | 从 classpath 加载场景与标注 |
+| `eval/EvalScenarioContext.java` / `EvalTraceContext.java` | 线程作用域的当前场景与当前 trace |
+| `eval/EvalScoringService.java` | 确定性覆盖度评分与失败标签 |
+| `eval/EvalTraceStore.java` | trace 原子落盘、容错读取、批量汇总 |
+| `eval/EvalRunTrace.java` | trace 数据结构（工具调用、Usage、评分） |
+| `model/TokenUsageTrackingChatModel.java` | 仅评测上下文采集 token 用量 |
+| `agent/tool/ToolParameterValidator.java` | 工具入参校验，拦截结果写入 trace |

@@ -1,7 +1,7 @@
 {
   "scenarioId": "memory-heap-leak-01",
   "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
-  "optionalTools": ["getAvailableLogTopics"],
+  "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
   "acceptableDiagnoses": [
     {
       "id": "unreleased-export-cache",

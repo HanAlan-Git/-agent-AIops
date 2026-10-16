@@ -95,11 +95,18 @@ cls:
 eval:
   trace:
     output-dir: ./eval-reports  # 每次运行的 trace 与批量汇总落盘目录
+  # 价目表：请求的模型别名是 deepseek-chat，实际落到 deepseek-flash（见 trace 里的 usage.model）
+  # 空闲时段 = 输入 1 元/M、输出 4 元/M；高峰时段 = 输入 2 元/M、输出 8 元/M（元/百万 tokens）
+  # 默认按「高峰时段」计，属于成本上限估计；若确认跑在空闲时段，改回 1.0 / 4.0 即可
   pricing:
-    prompt-cny-per-million: 2.0       # 用于成本估算，替换为你所用模型的真实价目
+    prompt-cny-per-million: 2.0
     completion-cny-per-million: 8.0
+    # 缓存命中的输入单价。当前实现不区分缓存命中，一律按未命中（较高价）计算，
+    # 因此成本是保守（偏上限）估计。此值仅作为价目记录保留：
+    # 空闲时段为 0.02、高峰时段为 0.04，此处取高峰档
+    prompt-cache-hit-cny-per-million: 0.04
     currency: CNY
-    source: "DeepSeek public price list"
+    source: "DeepSeek deepseek-flash 价目表（高峰时段），缓存命中未单独建模"
   runner:
     base-url: http://localhost:9900   # 批量评测驱动进程访问的服务地址
     timeout-seconds: 600              # 单个场景的最长等待时间

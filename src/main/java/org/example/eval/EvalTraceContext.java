@@ -16,6 +16,9 @@ import java.util.UUID;
 public final class EvalTraceContext {
 
     private static final int SUMMARY_LIMIT = 500;
+
+    /** Marker used by tool parameter validation in its rejection payloads. */
+    private static final String REJECTION_MARKER = "参数非法";
     private static final ThreadLocal<EvalRunTrace> CURRENT = new ThreadLocal<>();
     private static final ThreadLocal<UsageRecorder> USAGE = new ThreadLocal<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -79,9 +82,48 @@ public final class EvalTraceContext {
             return;
         }
         toolCall.setDurationMs(System.currentTimeMillis() - toolCall.getStartedAtEpochMs());
-        toolCall.setSuccess(!isExecutionError(result));
-        toolCall.setDataFound(!isNoDataResult(result) && toolCall.isSuccess());
+
+        // 优先读工具显式声明的三态结果；读不到才退回字符串启发式
+        String declared = declaredStatus(result);
+        if (declared != null) {
+            toolCall.setStatus(declared);
+            toolCall.setSuccess(!"ERROR".equals(declared));
+            toolCall.setDataFound("OK".equals(declared));
+        } else {
+            // 顺序很重要：先判"无数据"再判"错误"。
+            // 旧载荷在查空时同时带有 success=false 和 logs=[]，若先判错误就会把它误分类成失败。
+            // 而错误响应从不包含 logs/total 字段，所以优先判无数据不会吃掉真错误。
+            boolean noData = isNoDataResult(result);
+            boolean failed = !noData && isExecutionError(result);
+            toolCall.setSuccess(!failed);
+            toolCall.setDataFound(!failed && !noData);
+            toolCall.setStatus(failed ? "ERROR" : (noData ? "EMPTY" : "OK"));
+        }
         toolCall.setResultSummary(summarize(result));
+    }
+
+    /**
+     * Reads an explicit {@code status} field from a tool payload.
+     *
+     * <p>This is what separates "ran fine, found nothing" from "failed": both used to be
+     * expressed as {@code success=false}, which made an honest empty search count as a failed
+     * tool call and deflated the tool-accuracy metric.
+     *
+     * @return {@code OK} / {@code EMPTY} / {@code ERROR}, or {@code null} when the payload
+     *         does not declare one (in which case the caller falls back to heuristics).
+     */
+    private static String declaredStatus(String result) {
+        if (result == null) {
+            return null;
+        }
+        for (String candidate : new String[]{"OK", "EMPTY", "ERROR"}) {
+            if (result.contains("\"status\" : \"" + candidate + "\"")
+                    || result.contains("\"status\":\"" + candidate + "\"")
+                    || result.contains("\"status\": \"" + candidate + "\"")) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     /** Marks how many attempts the guarded call needed, and the guard verdict when it refused to run. */
@@ -151,11 +193,24 @@ public final class EvalTraceContext {
         }
     }
 
+    /**
+     * Classifies a tool result as an execution error.
+     *
+     * <p>Results are plain JSON strings, so the verdict is derived from the payload. Both the
+     * compact and the pretty-printed shape must be recognised: tools serialise with Jackson's
+     * default pretty printer ({@code "success" : false}), while other paths emit compact JSON.
+     * The rejection marker matters because a guard refusal is a failed call — counting it as a
+     * success would let rejected invocations inflate the tool-accuracy metric.
+     */
     private static boolean isExecutionError(String result) {
-        return result == null
-                || result.contains("\"status\": \"error\"")
+        if (result == null) {
+            return true;
+        }
+        return result.contains("\"status\": \"error\"")
                 || result.contains("\"success\":false")
                 || result.contains("\"success\": false")
+                || result.contains("\"success\" : false")
+                || result.contains(REJECTION_MARKER)
                 || result.contains("\"message\" : \"查询失败")
                 || result.contains("\"message\": \"查询失败");
     }
@@ -163,7 +218,9 @@ public final class EvalTraceContext {
     private static boolean isNoDataResult(String result) {
         return result != null && (result.contains("\"status\": \"no_results\"")
                 || result.contains("\"total\" : 0")
-                || result.contains("\"total\":0"));
+                || result.contains("\"total\":0")
+                || result.contains("\"logs\" : [ ]")
+                || result.contains("\"logs\":[]"));
     }
 
     private static String summarize(String value) {

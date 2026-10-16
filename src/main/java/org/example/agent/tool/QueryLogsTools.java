@@ -200,9 +200,12 @@ public class QueryLogsTools {
                 return buildErrorResponse("如果配置文件没有用mock，则按照spring-ai-starter-mcp-client-webflux的规范自动注入mcp tool,不会走进来");
             }
             
-            // 构建成功响应
+            // 构建响应：区分「执行成功但没数据」与「执行失败」两件事。
+            // 旧实现用 success=!logEntries.isEmpty()，把"查空"表达成 success=false，
+            // 导致评测把诚实查空当成工具失败（详见 EvalTraceContext 的 status 语义）。
             QueryLogsOutput output = new QueryLogsOutput();
-            output.setSuccess(!logEntries.isEmpty());
+            output.setSuccess(true);                       // 走到这里说明工具本身执行成功
+            output.setStatus(logEntries.isEmpty() ? "EMPTY" : "OK");
             output.setRegion(region);
             output.setLogTopic(logTopic);
             output.setQuery(safeQuery.isBlank() ? "DEFAULT_QUERY" : safeQuery);
@@ -655,10 +658,11 @@ public class QueryLogsTools {
         try {
             QueryLogsOutput output = new QueryLogsOutput();
             output.setSuccess(false);
+            output.setStatus("ERROR");   // 显式失败：参数被拒、异常、依赖不可用
             output.setMessage(message);
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(output);
         } catch (Exception e) {
-            return String.format("{\"success\":false,\"message\":\"%s\"}", message);
+            return String.format("{\"success\":false,\"status\":\"ERROR\",\"message\":\"%s\"}", message);
         }
     }
     
@@ -695,7 +699,18 @@ public class QueryLogsTools {
     public static class QueryLogsOutput {
         @JsonProperty("success")
         private boolean success;
-        
+
+        /**
+         * 三态结果标识：{@code OK} 有数据、{@code EMPTY} 执行成功但无匹配数据、
+         * {@code ERROR} 执行失败（参数被拒 / 异常 / 依赖不可用）。
+         *
+         * <p>引入它的原因：{@code success} 一个布尔无法同时表达"工具跑通了吗"和
+         * "查到东西了吗"。模型需要后者来调整下一步动作，而评测需要前者来统计工具
+         * 准确率 —— 混用会把"诚实查空"误判成"工具失败"。
+         */
+        @JsonProperty("status")
+        private String status;
+
         @JsonProperty("region")
         private String region;
         

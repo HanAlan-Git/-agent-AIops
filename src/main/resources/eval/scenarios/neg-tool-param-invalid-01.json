@@ -3,7 +3,7 @@
   "alerts": [
     {
       "alertName": "SlowResponse",
-      "description": "服务 media-service 上传接口偶发超时",
+      "description": "服务 media-service 上传接口偶发超时：P99 4.2s。补充信息（非结论）：该服务调用链日志的原始采集地域标记为 ap-hongkong，主题标记为 media-upload-logs；请按当前工具实际支持的地域与主题取证，不要把不支持的取值直接当作查询参数使用。",
       "state": "firing",
       "activeAt": "2026-10-14T13:00:00Z",
       "duration": "18m"
@@ -16,12 +16,27 @@
       "level": "WARN",
       "service": "media-service",
       "instance": "pod-media-service-3e2d1c0b9-a8f765",
-      "message": "上传接口耗时 2400ms，其中对象存储写入 2100ms。",
+      "message": "上传接口耗时 2400ms，其中对象存储写入 2100ms，客户端重试 2 次后成功。",
       "metrics": {
         "response_time_ms": "2400",
-        "oss_time_ms": "2100"
+        "oss_time_ms": "2100",
+        "retry_count": "2"
       },
-      "queryAnyTerms": ["slow", "上传"]
+      "queryAnyTerms": ["upload", "slow", "上传", "耗时"]
+    },
+    {
+      "topic": "application-logs",
+      "timestamp": "2026-10-14 20:57:00",
+      "level": "ERROR",
+      "service": "media-service",
+      "instance": "pod-media-service-3e2d1c0b9-a8f765",
+      "message": "对象存储写入超时：OSS 返回 RequestTimeout，客户端重试后仍然失败。",
+      "metrics": {
+        "error_type": "RequestTimeout",
+        "dependency": "oss",
+        "timeout_ms": "2000"
+      },
+      "queryAnyTerms": ["error", "oss", "超时", "timeout"]
     }
   ]
 }

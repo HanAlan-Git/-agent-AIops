@@ -21,7 +21,7 @@ class EvalTraceStoreSummaryTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private EvalTraceStore store() {
-        return new EvalTraceStore(objectMapper, "target/test-eval-reports", 2.0, 8.0, "CNY", "unit-test-price-list");
+        return new EvalTraceStore(objectMapper, "target/test-eval-reports", 2.0, 8.0, 0.04, "CNY", "unit-test-price-list");
     }
 
     @Test

@@ -57,12 +57,25 @@ JDK 17、Maven 3.9+、Docker Desktop、DeepSeek 与 DashScope 的 API Key。
 项目使用**专用变量名**，避免与本机其它工具的同名变量互相覆盖：
 
 ```powershell
+# 写入用户级变量（对以后新开的进程永久生效）
 [Environment]::SetEnvironmentVariable("DEEPSEEK_API_KEY_AGENT", "<你的 DeepSeek Key>", "User")
 [Environment]::SetEnvironmentVariable("DASHSCOPE_API_KEY",      "<你的 DashScope Key>", "User")
-# 当前窗口也需要显式赋值（新进程才会读到用户级变量）
-$env:DEEPSEEK_API_KEY_AGENT = "<你的 DeepSeek Key>"
-$env:DASHSCOPE_API_KEY      = "<你的 DashScope Key>"
+
+# 【必需】当前窗口也要赋值一次：用户级变量只对「新开的进程」生效，
+# 已经打开的终端读不到刚写入的值，会导致应用启动即认证失败
+$env:DEEPSEEK_API_KEY_AGENT = [Environment]::GetEnvironmentVariable("DEEPSEEK_API_KEY_AGENT","User")
+$env:DASHSCOPE_API_KEY      = [Environment]::GetEnvironmentVariable("DASHSCOPE_API_KEY","User")
+
+# 自检：两条都应输出 True 与长度
+Write-Output ([bool]$env:DEEPSEEK_API_KEY_AGENT, $env:DEEPSEEK_API_KEY_AGENT.Length)
+Write-Output ([bool]$env:DASHSCOPE_API_KEY,      $env:DASHSCOPE_API_KEY.Length)
 ```
+
+> **启动前建议先验证 Key 可用**，能省掉一整轮排查：
+> ```powershell
+> curl.exe -s -o NUL -w "deepseek=%{http_code}`n" https://api.deepseek.com/models -H "Authorization: Bearer $env:DEEPSEEK_API_KEY_AGENT"
+> ```
+> 返回 `200` 才算可用；`401` 说明 Key 无效或被停用。
 
 `application-local.yml` 已从版本库移除并加入 `.gitignore`（历史上曾误提交明文 Key）。如需本地覆盖配置，复制模板：
 
@@ -142,14 +155,46 @@ curl.exe -X POST http://localhost:9900/api/chat `
 
 - **失败标签**：输出 `TOOL_MISSING`、`TOOL_INVALID_OR_FAILED`、`RAG_NO_RESULT`、`ROOT_CAUSE_MISS`、`EVIDENCE_GAP`、`ACTION_GAP`、`EXECUTION_FAILURE`，便于按类型做 Bad Case 归因。
 
-### 已有基线（真实运行数据）
+### 实测结果（23 场景 × 3 轮 = 69 次运行）
 
-| 场景 | 总分 | 工具调用准确率 | 端到端耗时 | 失败标签 |
-|---|---|---|---|---|
-| `slow-response-db-query-01` | 99.2 | 0.92 | 17.9 s | `TOOL_INVALID_OR_FAILED` `RAG_NO_RESULT` |
-| `slow-response-db-query-01` | 95.8 | 0.58 | 19.8 s | `TOOL_INVALID_OR_FAILED` |
+| 指标 | 数值 |
+|---|---|
+| 执行成功率 | **69/69**（流程全部跑完） |
+| 诊断达标率 | **28/69**（必调工具、根因与证据均全覆盖且总分 ≥80） |
+| 平均总分 | **86.87** |
+| 工具调用准确率 | **1.00**（891 次调用） |
+| 平均步数 | **12.91** 次工具调用 |
+| 延迟 平均 / P50 / P95 / 最大 | 17.6 s / 17.3 s / **21.3 s** / 22.9 s |
+| Token 平均 | prompt 26484 + completion 2967（69/69 均有上报） |
+| 单次成本 | **¥0.08**（按高峰档价目，缓存命中未单独建模，属上限估计） |
+| 失败标签分布 | `EVIDENCE_GAP` 38、`ROOT_CAUSE_MISS` 19、`ACTION_GAP` 5；`TOOL_INVALID_OR_FAILED` 与 `RAG_NO_RESULT` 均为 **0** |
 
-两次运行总分都很高，但**工具调用准确率只有 0.58 / 0.92** —— 高分掩盖了工具层问题：存在非预期工具调用与知识库查空。这正是把「参数校验 + 失败熔断」列为下一步优化的直接依据。原始 trace 位于 `eval-reports/`（已加入 `.gitignore`）。
+**两个结论值得单独说**：
+
+1. **主要短板是举证不足，不是判断错**。`EVIDENCE_GAP` 38 次远高于 `ROOT_CAUSE_MISS` 19 次——Agent 通常能给出正确方向的根因，但报告里没有充分引用日志中的具体数值（如 `92.0%`、`backlog=1840`）。改进方向是约束证据引用，而不是换推理范式。
+2. **「执行成功率」与「诊断达标率」必须分开看**。前者只说明流程没崩，后者才回答诊断是否正确；把两者混用会把执行成功率误读成答对率。
+
+### 评测链路修掉的两个真实缺陷
+
+跑批量时发现的，都属于「评测本身不够准」这一类问题——比被测代码的 bug 更危险，因为它会让所有结论失真。完整的排查过程、评分口径与文件职责见 [`PROJECT_GUIDE.md` §19](PROJECT_GUIDE.md)；证据是 `eval-reports/` 下的 69 条 trace（该目录已加入 `.gitignore`，可用上文命令重新生成）。
+
+**缺陷一：单一 `success` 字段混淆了两件事**
+
+工具返回用 `success = !logEntries.isEmpty()`，即"有没有查到数据"，而评测把它读作"执行是否成功"。一次参数合法、Milvus 正常的查询，仅因库里没有匹配日志就被记为工具失败。
+
+实测：919 次调用中 **423 次是「执行成功但无数据」、真实执行错误 0 次**，却让工具准确率被统计为 0.54。修复方式是引入三态语义，把「执行是否成功」与「是否有数据」拆开：
+
+| 状态 | 含义 | 计入 toolCallAccuracy |
+|---|---|---|
+| `OK` | 有数据 | ✅ |
+| `EMPTY` | 执行成功、无匹配数据 | ✅（诚实查空不是失败） |
+| `ERROR` | 参数被拒 / 异常 / 依赖不可用 | ❌ |
+
+修复后工具准确率 **0.54 → 1.00**，`TOOL_INVALID_OR_FAILED` 误报从 69/69 降为 0。
+
+**缺陷二：批量驱动与服务端落盘竞态**
+
+服务端在 `finally` 里才写 trace 文件，而它先发出了 SSE 的 `done` 事件——驱动读到 `done` 就去读文件，必然抢先，表现为 `Unexpected end-of-input` 或文件尚不存在，导致 69 条结果只聚合到 1 条。修复为**原子写**（写临时文件后 `ATOMIC_MOVE`）+ **轮询等待落盘**（120 秒超时、250 ms 间隔），因为 `done` 事件与落盘之间本就没有因果顺序。
 
 ### 如何跑批量评测
 
@@ -175,15 +220,20 @@ mvn -B -ntp exec:java "-Dexec.args=--rounds 3 --parallelism 2"
 mvn -B -ntp test
 ```
 
-**50 个用例**，全部**不依赖 Milvus 与模型 Key**，可在干净 CI 上跑通：
+**65 个用例**，全部**不依赖 Milvus 与模型 Key**，可在干净 CI 上跑通：
 
 | 测试类 | 用例 | 覆盖内容 |
 |---|---|---|
 | `ToolParameterValidatorTest` | 26 | 参数校验：合法/非法地域与主题、TopicId 形态、`limit` 夹紧 |
 | `EvalScoringServiceTest` | 7 | 评分器：满分路径、缺工具、空检索、执行失败、缺标注 |
-| `EvalTraceStoreSummaryTest` | 6 | 汇总聚合：成功率、工具准确率、P50/P95、Token 与成本、不伪造用量 |
-| `EvalScenarioCorpusTest` | 4 | 语料完整性：每条场景都有标注、数量与分类、夹具不污染生产语料 |
 | `DocumentChunkServiceTest` | 7 | 分块：标题切分、段落边界、重叠、索引连续、空输入 |
+| `ToolResultStatusTest` | 7 | **三态语义**：`OK`/`EMPTY`/`ERROR` 判定，含旧载荷回退（「查空 ≠ 失败」） |
+| `EvalTraceStoreSummaryTest` | 6 | 汇总聚合：成功率、诊断达标率、工具准确率、P50/P95、Token 与成本、不伪造用量 |
+| `EvalScenarioCorpusTest` | 5 | 语料完整性：每条场景都有标注、数量与分类、夹具不污染语料、**golden 必须声明辅助工具** |
+| `QueryLogsToolsGuardTest` | 4 | **直接调用真实工具**：非法 logTopic/region 被拒 + trace 标记 `PARAM_REJECTED` + 不计入成功 |
+| `ToolGuardTraceTest` | 3 | 拦截判定与 trace 记录的对接 |
+
+**为什么参数拦截靠测试而不靠评测场景**：实测发现模型在有明确选项时**不会**主动传非法参数（8 次 `queryLogs` 调用全部使用合法值）。这是 Agent 表现好的证据，但也意味着「非法参数会被拒绝」这条只能由测试保证——26 个用例覆盖校验规则，4 个用例直接调用真实工具验证拒绝文案与 trace 标记。
 
 CI 见 `.github/workflows/ci.yml`（`mvn -B -ntp verify`）。
 
@@ -211,7 +261,7 @@ SuperBizAgent/
 │   ├── eval/scenarios/      23 条运行时场景
 │   ├── eval/golden/         23 条金标准标注（不暴露给 Agent）
 │   └── static/              Web 测试界面
-├── src/test/java/           50 个单元测试
+├── src/test/java/           65 个单元测试
 ├── aiops-docs/              运维知识库样例文档
 ├── vector-database.yml      Milvus Docker Compose
 ├── PROJECT_GUIDE.md         源码逐模块理解指南
@@ -224,7 +274,7 @@ SuperBizAgent/
 
 诚实列出当前实现的局限，便于后续迭代：
 
-1. **RAG 只有单路向量检索**：尚无混合检索与重排；已观察到长尾告警描述的漏召（`RAG_NO_RESULT` 标签）。计划做两阶段检索（召回池 20 → 重排取 3~5）。
+1. **RAG 只有单路向量检索**：尚无混合检索与两阶段重排。实测单路检索在 240 次知识库调用中命中率 100%（`dataFound` 全部为真），但语料仅是 5 篇结构清晰的运维文档——文档形态更复杂时仍需重排兜底。计划做两阶段检索（召回池 20 → 重排取 3~5）。
 2. **工具失败尚无熔断**：目前靠 Prompt 约束「同一工具连续失败 3 次即停止」，尚未落到代码机制；`guardState` 字段已预留。
 3. **会话为内存态**：重启即丢失，多实例不共享，无持久化与鉴权限流。
 4. **MCP 仅预留**：`spring.ai.mcp.client.enabled` 默认为 `false`，日志工具当前使用 mock 数据源。

@@ -27,6 +27,14 @@ class EvalScenarioCorpusTest {
             "neg-tool-param-invalid-01"
     );
 
+    /**
+     * 辅助工具：模型在每次运行里都会先调它取当前时间，实测 69/69 次运行全部调用。
+     *
+     * <p>任何 golden 漏声明它，该次调用就会被算成"非预期工具"，直接把
+     * {@code toolCallAccuracy} 拉离 1.0 并误报 {@code TOOL_INVALID_OR_FAILED}。
+     */
+    private static final List<String> EXPECTED_AUXILIARY_TOOLS = List.of("getCurrentDateTime");
+
     private final EvalGoldenScenarioService scenarioService =
             new EvalGoldenScenarioService(new ObjectMapper());
 
@@ -86,6 +94,22 @@ class EvalScenarioCorpusTest {
                 .as("该文件若出现在 test 的 eval/golden 下，会被场景发现逻辑当成真实场景")
                 .isNull();
         assertThat(scenarioService.listScenarioIds()).doesNotContain("unit-eval-scenario-01");
+    }
+
+    @Test
+    @DisplayName("每个 golden 都必须声明辅助工具，否则会被误判成调用非预期工具")
+    void everyGoldenDeclaresAuxiliaryTools() {
+        for (String scenarioId : scenarioService.listScenarioIds()) {
+            EvalGoldenScenario golden = scenarioService.load(scenarioId).orElseThrow();
+            for (String auxiliary : EXPECTED_AUXILIARY_TOOLS) {
+                boolean declared = golden.getRequiredTools().contains(auxiliary)
+                        || golden.getOptionalTools().contains(auxiliary);
+                assertThat(declared)
+                        .as("场景 %s 的 golden 未声明 %s；模型实际会调用它，漏声明会误报 TOOL_INVALID_OR_FAILED",
+                                scenarioId, auxiliary)
+                        .isTrue();
+            }
+        }
     }
 
     private long countByPrefix(List<String> scenarioIds, String prefix) {

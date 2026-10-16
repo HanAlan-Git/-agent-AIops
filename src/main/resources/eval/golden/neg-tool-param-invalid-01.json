@@ -2,21 +2,36 @@
   "scenarioId": "neg-tool-param-invalid-01",
   "requiredTools": ["queryPrometheusAlerts", "queryLogs", "queryInternalDocs"],
   "optionalTools": ["getAvailableLogTopics", "getCurrentDateTime"],
-  "notes": "Negative sample: exercises ToolGuard parameter validation instead of a silent fallback.",
+  "notes": "Guards two things: the agent must not pass unsupported region/topic values (the alert advertises ap-hongkong / media-upload-logs, which the tool rejects), and it must still reach a technical conclusion from the logs it can retrieve. Either 'the parameter was rejected' or 'the log query could not be completed as stated' counts as acknowledging the rejection.",
   "acceptableDiagnoses": [
     {
-      "id": "invalid-parameter-handling",
-      "description": "工具参数非法时必须在入口被拒绝并返回可解释错误，而不是用默认值静默返回无关数据；报告需说明参数被拒这一事实。",
+      "id": "invalid-parameter-rejected",
+      "description": "工具参数非法时必须在入口被拒绝并返回可解释错误，而不是用默认值静默返回无关数据；报告需说明参数被拒或该次查询无法按要求完成。",
       "rootCauseTermGroups": [
-        ["参数", "非法", "不合法", "invalid"],
-        ["拒绝", "拦截", "不支持", "未生效"]
+        ["参数", "非法", "不合法", "invalid", "不受支持"],
+        ["拒绝", "拦截", "不支持", "未生效", "无法完成"]
       ],
       "evidenceTermGroups": [
-        ["logTopic", "region", "参数"],
-        ["拒绝", "非法", "不支持"]
+        ["logTopic", "region", "地域", "主题", "参数"],
+        ["拒绝", "非法", "不支持", "无法完成"]
       ],
       "actionTermGroups": [
-        ["校验", "重试", "修正", "参数"]
+        ["校验", "重试", "修正", "参数", "改用", "支持"]
+      ]
+    },
+    {
+      "id": "oss-write-timeout",
+      "description": "上传接口超时的根因是对象存储写入超时（RequestTimeout）并触发客户端重试。",
+      "rootCauseTermGroups": [
+        ["对象存储", "oss", "存储"],
+        ["超时", "timeout", "写入慢", "耗时"]
+      ],
+      "evidenceTermGroups": [
+        ["2400", "2100"],
+        ["RequestTimeout", "重试", "retry"]
+      ],
+      "actionTermGroups": [
+        ["超时", "重试", "扩容", "限流", "监控", "优化"]
       ]
     }
   ]
