@@ -50,6 +50,9 @@ uploads/
 ### Temp Scripts ###
 *.sh
 *.py
+# 上面两条针对临时草稿脚本；仓库内实际维护的脚本必须显式放行，否则源码进不了仓库
+!mcp-server/*.py
+!tools/*.py
 
 ### docker
 /volumes

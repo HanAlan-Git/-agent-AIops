@@ -214,6 +214,53 @@ mvn -B -ntp exec:java "-Dexec.args=--rounds 3 --parallelism 2"
 
 ---
 
+## 远程工具（MCP）
+
+工具装配是**双通道**：本地 `@Tool` 方法 + 通过 MCP 协议接入的远程工具。客户端由
+`spring-ai-starter-mcp-client-webflux` 提供，配置在 `application.yml` 的 `spring.ai.mcp.client`。
+
+**默认关闭**，因为 MCP 客户端在 Server 不可用时会抛
+`Client failed to initialize by explicit API call` 并让应用启动失败（已实测）。需要远程工具时：
+
+```powershell
+# 1) 先起示例 MCP Server（零依赖，见 mcp-server/README.md）
+python mcp-server/mcp_sse_server.py --port 8081
+
+# 2) 再带 mcp profile 启动应用
+java -jar target/super-biz-agent-1.0-SNAPSHOT.jar --spring.profiles.active=local,mcp
+```
+
+启用后的连接配置位于 `application.yml` 末尾的 `mcp` profile 文档段：
+
+```yaml
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        sse:
+          connections:
+            biz-logs:
+              url: http://127.0.0.1:8081
+              sse-endpoint: /sse
+```
+
+`mcp-server/` 提供一个**零依赖**的 SSE MCP Server（Python 标准库即可运行），暴露
+`query_cloud_logs` 与 `get_cluster_events` 两个工具，细节见 [`mcp-server/README.md`](mcp-server/README.md)。
+
+**已验证的事实**（不是"配置写好了"）：
+
+- 带 `mcp` profile 启动时完成 MCP 握手，日志可见
+  `Protocol: 2024-11-05 … Implementation[name=biz-demo-mcp]`；
+- 向 `/api/chat` 提问集群事件时，MCP Server 侧记录到 `tools/call name=get_cluster_events`，
+  返回数据仅存在于该 Server，证明调用确实经过 MCP 而非本地工具；
+- 不带 profile 启动时应用正常启动、不包含远程工具，两条路径都验证过。
+
+**边界**：仅实现 `tools` 能力，未实现 `prompts` / `resources` / `sampling` / `elicitation`；
+Server 返回固定样例数据，不连接真实云服务。
+
+---
+
 ## 单元测试
 
 ```powershell
@@ -235,7 +282,8 @@ mvn -B -ntp test
 
 **为什么参数拦截靠测试而不靠评测场景**：实测发现模型在有明确选项时**不会**主动传非法参数（8 次 `queryLogs` 调用全部使用合法值）。这是 Agent 表现好的证据，但也意味着「非法参数会被拒绝」这条只能由测试保证——26 个用例覆盖校验规则，4 个用例直接调用真实工具验证拒绝文案与 trace 标记。
 
-CI 见 `.github/workflows/ci.yml`（`mvn -B -ntp verify`）。
+CI 见 `.github/workflows/ci.yml`，两个 job：`verify`（`mvn -B -ntp verify`，65 个单元测试）与
+`mcp-protocol`（拉起示例 MCP Server 校验 `initialize` → `tools/list` → `tools/call`，见上文 MCP 章节）。
 
 ### 测试发现的一个真实缺陷
 

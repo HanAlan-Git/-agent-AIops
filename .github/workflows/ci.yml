@@ -31,3 +31,20 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
           if-no-files-found: ignore
+
+  # The MCP server speaks JSON-RPC over SSE and needs no JDK, Milvus or API key, so the
+  # protocol contract gets its own job: a broken server fails CI instead of surfacing only
+  # during a manual demo.
+  mcp-protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Exercises handshake -> tools/list -> tools/call against the example server.
+      - name: Check MCP server protocol
+        run: python mcp-server/check_mcp_server.py
